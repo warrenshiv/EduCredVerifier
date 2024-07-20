@@ -1,6 +1,7 @@
 type Credential = record {
   id : nat64;
   issued_at : nat64;
+  revoked : bool;
   institution_id : nat64;
   student_id : nat64;
   degree : text;
@@ -26,6 +27,7 @@ type Message = variant {
   InvalidPayload : text;
   NotFound : text;
   Success : text;
+  Unauthorized : text;
 };
 type Result = variant { Ok : Credential; Err : Message };
 type Result_1 = variant { Ok : Institution; Err : Message };
@@ -33,6 +35,12 @@ type Result_2 = variant { Ok : Student; Err : Message };
 type Result_3 = variant { Ok : vec Credential; Err : Message };
 type Result_4 = variant { Ok : vec Institution; Err : Message };
 type Result_5 = variant { Ok : vec Student; Err : Message };
+type Result_6 = variant { Ok : Message; Err : Message };
+type SearchCredentialPayload = record {
+  degree : opt text;
+  graduation_year : opt nat32;
+  course : opt text;
+};
 type Student = record {
   id : nat64;
   name : text;
@@ -40,16 +48,25 @@ type Student = record {
   email : text;
 };
 type StudentPayload = record { name : text; email : text };
+type UpdateCredentialPayload = record {
+  id : nat64;
+  degree : opt text;
+  graduation_year : opt nat32;
+  course : opt text;
+};
 type VerifyPayload = record { institution_id : nat64; student_id : nat64 };
 service : {
-  create_credential : (CredentialPayload) -> (Result);
-  create_institution : (InstitutionPayload) -> (Result_1);
-  create_student : (StudentPayload) -> (Result_2);
+  create_credential : (CredentialPayload, text) -> (Result);
+  create_institution : (InstitutionPayload, text) -> (Result_1);
+  create_student : (StudentPayload, text) -> (Result_2);
   get_credential_by_id : (nat64) -> (Result) query;
   get_credentials : () -> (Result_3) query;
   get_institution_by_id : (nat64) -> (Result_1) query;
   get_institutions : () -> (Result_4) query;
   get_student_by_id : (nat64) -> (Result_2) query;
   get_students : () -> (Result_5) query;
+  revoke_credential : (nat64, text) -> (Result_6);
+  search_credentials : (SearchCredentialPayload) -> (Result_3) query;
+  update_credential : (UpdateCredentialPayload, text) -> (Result);
   verify_credential : (VerifyPayload) -> (Result) query;
 }
