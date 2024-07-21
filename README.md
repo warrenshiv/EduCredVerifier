@@ -1,38 +1,51 @@
-# Alumni Association Management Platform
+# EduCredVerifier
 
-This project is a decentralized platform built on the Internet Computer, aiming to facilitate the management of alumni associations, events, mentorship requests, and communication within the alumni community. It leverages the power of the blockchain to ensure transparency and reliability in the management processes.
+## Description
 
-## Key Features
+The Decentralized Credential Management System is a blockchain-based application designed to manage and verify academic credentials. Built using the Internet Computer platform, this system enables the creation, updating, revocation, and verification of academic credentials in a decentralized manner. It also manages institutions and students, ensuring secure and immutable records of academic achievements.
 
-### Alumni Management
-- **Create Alumni Profile**: Allows the creation of new alumni profiles with validation for input fields.
-- **Get Alumni Profiles**: Retrieves all registered alumni profiles.
-- **Get Alumni by ID**: Retrieves the profile of a specific alumni by their unique ID.
-- **Search Alumni**: Searches for alumni by name or graduation year.
+## Features
 
-### Association Management
-- **Create Association**: Allows the creation of new associations.
-- **Get Associations**: Retrieves all registered associations.
-- **Get Association by ID**: Retrieves the details of a specific association by its ID.
-- **Join Association**: Allows an alumni to join an association.
-- **Leave Association**: Allows an alumni to leave an association.
+- **Create Credentials**: Issue new academic credentials linked to students and institutions.
+- **Revoke Credentials**: Mark credentials as revoked to prevent their further use.
+- **Update Credentials**: Modify existing credentials with updated information.
+- **Verify Credentials**: Confirm the validity of a credential based on student and institution details.
+- **Manage Institutions**: Create and manage institutions that issue credentials.
+- **Manage Students**: Add and manage student records with unique email verification.
+- **Search and Retrieve Records**: Efficiently search for and retrieve credentials, students, and institutions by various criteria.
 
-### Event Management
-- **Create Event**: Allows the creation of new events within associations.
-- **Get Events**: Retrieves all registered events.
-- **Get Event by ID**: Retrieves the details of a specific event by its ID.
-- **RSVP to Event**: Allows alumni to RSVP to events.
+## Hardcoded Token
 
-### Communication
-- **Send Message to Association**: Allows alumni to send messages to association members.
+To authenticate API requests, the system uses a hardcoded token:
 
-### Mentorship Management
-- **Request Mentorship**: Allows alumni to request mentorship from other alumni.
-- **Approve Mentorship Request**: Approves a mentorship request.
+- **Token**: `supersecrettoken`
 
-### Error Handling
-- **Not Found**: Returns an error if a requested resource (alumni, association, event) is not found.
-- **Invalid Input**: Handles errors related to invalid input fields.
+Ensure that the token provided in requests matches the predefined token to gain access.
+
+## How to Use
+
+1. **Create Credentials**: Use the `create_credential` function with the required details to issue new credentials.
+2. **Revoke Credentials**: Call `revoke_credential` to invalidate a credential that should no longer be valid.
+3. **Update Credentials**: Modify existing credentials using `update_credential` to reflect any changes.
+4. **Verify Credentials**: Check the validity of a credential using the `verify_credential` function.
+5. **Manage Institutions and Students**: Add new institutions and students using `create_institution` and `create_student`, respectively.
+
+## API Endpoints
+
+- `create_credential(payload: CredentialPayload)`: Issues a new credential.
+- `revoke_credential(payload: RevokeCredentialPayload)`: Revokes an existing credential.
+- `update_credential(payload: UpdateCredentialPayload, token: String)`: Updates an existing credential.
+- `get_credentials()`: Retrieves all credentials.
+- `get_credential_by_id(id: u64)`: Fetches a credential by its ID.
+- `search_credentials(payload: SearchCredentialPayload)`: Searches for credentials based on given criteria.
+- `create_institution(payload: InstitutionPayload)`: Adds a new institution.
+- `get_institutions()`: Retrieves all institutions.
+- `get_institution_by_id(id: u64)`: Fetches an institution by its ID.
+- `create_student(payload: StudentPayload)`: Adds a new student.
+- `get_students()`: Retrieves all students.
+- `get_student_by_id(id: u64)`: Fetches a student by their ID.
+- `verify_credential(payload: VerifyPayload)`: Verifies the validity of a credential.
+
 
 
 
