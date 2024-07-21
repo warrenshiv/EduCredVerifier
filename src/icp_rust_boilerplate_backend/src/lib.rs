@@ -9,6 +9,8 @@ use std::{borrow::Cow, cell::RefCell};
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 type IdCell = Cell<u64, Memory>;
 
+const HARDCODED_TOKEN: &str = "supersecrettoken";
+
 #[derive(candid::CandidType, Clone, Serialize, Deserialize, Default)]
 struct Credential {
     id: u64,
@@ -115,6 +117,7 @@ struct CredentialPayload {
     course: String,
     degree: String,
     graduation_year: u32,
+    token: String,
 }
 
 #[derive(candid::CandidType, Deserialize, Serialize)]
@@ -150,6 +153,13 @@ struct SearchCredentialPayload {
     graduation_year: Option<u32>,
 }
 
+//  Revoke_credential Payload
+#[derive(candid::CandidType, Deserialize, Serialize)]
+struct RevokeCredentialPayload {
+    id: u64,
+    token: String,
+}
+
 #[derive(candid::CandidType, Deserialize, Serialize)]
 enum Message {
     Success(String),
@@ -159,17 +169,19 @@ enum Message {
     Unauthorized(String),
 }
 
-// Dummy authentication check
-fn authenticate(_token: &str) -> bool {
-    true
+// Hardcoded token check
+fn authenticate(token: &str) -> bool {
+    token == HARDCODED_TOKEN
 }
 
 #[ic_cdk::update]
-fn create_credential(payload: CredentialPayload, token: String) -> Result<Credential, Message> {
-    if !authenticate(&token) {
+fn create_credential(payload: CredentialPayload) -> Result<Credential, Message> {
+    // Authenticate the request
+    if !authenticate(&payload.token) {
         return Err(Message::Unauthorized("Unauthorized".to_string()));
     }
 
+    // Ensure all fields are provided
     if payload.course.is_empty() || payload.degree.is_empty() {
         return Err(Message::InvalidPayload(
             "Ensure 'course' and 'degree' are provided.".to_string(),
@@ -177,7 +189,10 @@ fn create_credential(payload: CredentialPayload, token: String) -> Result<Creden
     }
 
     let student_exists = STUDENTS_STORAGE.with(|storage| {
-        storage.borrow().iter().any(|(_, student)| student.id == payload.student_id)
+        storage
+            .borrow()
+            .iter()
+            .any(|(_, student)| student.id == payload.student_id)
     });
 
     if !student_exists {
@@ -185,7 +200,10 @@ fn create_credential(payload: CredentialPayload, token: String) -> Result<Creden
     }
 
     let institution_exists = INSTITUTIONS_STORAGE.with(|storage| {
-        storage.borrow().iter().any(|(_, institution)| institution.id == payload.institution_id)
+        storage
+            .borrow()
+            .iter()
+            .any(|(_, institution)| institution.id == payload.institution_id)
     });
 
     if !institution_exists {
@@ -214,17 +232,17 @@ fn create_credential(payload: CredentialPayload, token: String) -> Result<Creden
 }
 
 #[ic_cdk::update]
-fn revoke_credential(id: u64, token: String) -> Result<Message, Message> {
-    if !authenticate(&token) {
+fn revoke_credential(payload: RevokeCredentialPayload) -> Result<Credential, Message> {
+    if !authenticate(&payload.token) {
         return Err(Message::Unauthorized("Unauthorized".to_string()));
     }
 
     CREDENTIALS_STORAGE.with(|storage| {
         let mut credentials = storage.borrow_mut();
-        if let Some(mut credential) = credentials.remove(&id) {
+        if let Some(mut credential) = credentials.remove(&payload.id) {
             credential.revoked = true;
-            credentials.insert(id, credential);
-            Ok(Message::Success("Credential revoked".to_string()))
+            credentials.insert(payload.id, credential.clone());
+            Ok(credential)
         } else {
             Err(Message::NotFound("Credential not found".to_string()))
         }
@@ -232,7 +250,10 @@ fn revoke_credential(id: u64, token: String) -> Result<Message, Message> {
 }
 
 #[ic_cdk::update]
-fn update_credential(payload: UpdateCredentialPayload, token: String) -> Result<Credential, Message> {
+fn update_credential(
+    payload: UpdateCredentialPayload,
+    token: String,
+) -> Result<Credential, Message> {
     if !authenticate(&token) {
         return Err(Message::Unauthorized("Unauthorized".to_string()));
     }
@@ -322,11 +343,8 @@ fn search_credentials(payload: SearchCredentialPayload) -> Result<Vec<Credential
 }
 
 #[ic_cdk::update]
-fn create_institution(payload: InstitutionPayload, token: String) -> Result<Institution, Message> {
-    if !authenticate(&token) {
-        return Err(Message::Unauthorized("Unauthorized".to_string()));
-    }
-
+fn create_institution(payload: InstitutionPayload) -> Result<Institution, Message> {
+    // Ensure all fields are provided
     if payload.name.is_empty() || payload.address.is_empty() {
         return Err(Message::InvalidPayload(
             "Ensure 'name' and 'address' are provided.".to_string(),
@@ -380,15 +398,23 @@ fn get_institution_by_id(id: u64) -> Result<Institution, Message> {
 }
 
 #[ic_cdk::update]
-fn create_student(payload: StudentPayload, token: String) -> Result<Student, Message> {
-    if !authenticate(&token) {
-        return Err(Message::Unauthorized("Unauthorized".to_string()));
-    }
-
+fn create_student(payload: StudentPayload) -> Result<Student, Message> {
+    // Ensure all the fields are provided
     if payload.name.is_empty() || payload.email.is_empty() {
         return Err(Message::InvalidPayload(
             "Ensure 'name' and 'email' are provided.".to_string(),
         ));
+    }
+
+    // Ensure the email is unique for each student
+    let email_exists = STUDENTS_STORAGE.with(|storage| {
+        storage
+            .borrow()
+            .iter()
+            .any(|(_, student)| student.email == payload.email)
+    });
+    if email_exists {
+        return Err(Message::InvalidPayload("Email already exists".to_string()));
     }
 
     let id = ID_COUNTER
